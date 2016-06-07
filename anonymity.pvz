@@ -1,0 +1,22 @@
+define sybil = or(or(eq(id,sybilid1),eq(id,sybilid2)),eq(id,sybilid3)).
+
+include "blacr-normal.pvi".
+include "alternative-zk.pvi".
+
+free sybilid1,sybilid2,sybilid3.
+free id0.
+
+let Users = 
+  ! new id; ! new p; (Register | (in(p, cert); ! ( Authenticate | Judge))).
+
+process
+  new IssKSeed; new VerKSeed; new jud; new L; new int0; new int1; let c = pub in ( out(pub, pk(IssKSeed)) | out(pub, pk(VerKSeed)) |
+  (! Issue) | ( Users ) |
+  (let (id, p) = (id0, int0) in Register) |
+  (new id1; let (id, p) = (id1, int1) in ( 
+    Register | in(int0, cre0); in(int1, cre1);
+    let (id, cre) = (choice[id0,id1], choice[cre0, cre1]) in ( Authenticate | Judge) ) 
+  )
+)
+
+

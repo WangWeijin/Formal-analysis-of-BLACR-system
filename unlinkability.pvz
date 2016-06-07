@@ -1,0 +1,21 @@
+define sybil = or(or(eq(id,sybilid1),eq(id,sybilid2)),eq(id,sybilid3)).
+
+include "blacr-normal.pvi".
+include "alternative-zk.pvi".
+
+free sybilid1,sybilid2,sybilid3.
+
+let Unlinkability =
+  ! new id1; new int1; ( 
+    (let (id, p) = (id1, int1) in Register) | 
+    (! in(pub,id2); new int2; ( 
+      (let (id, p) = (id2,int2) in Register) | (in(int1, cre1); in(int2,cre2);
+       let (id,cre) = (choice[id1,id2],choice[cre1,cre2]) in ( Authenticate | Judge)) 
+    ) ) 
+  ).
+
+process
+  new IssKSeed; new VerKSeed; new jud; new L; let c = pub in ( 
+    out(pub, pk(IssKSeed)) | out(pub, pk(VerKSeed)) |
+    ( ! Issue ) | ( Unlinkability )
+)

@@ -1,0 +1,32 @@
+
+(* Boolean theory. *)
+fun eq/2.
+fun or/2.
+fun land/2. // and is a reserved name in proverif
+fun true/0.
+fun false/0.
+equation eq(x,x) = true.
+equation or(x,true) = true.
+equation or(true,x) = true.
+equation land(true,true) = true. 
+
+(* BBS+ signatures. *)
+fun pk/1.
+fun sk/1.
+fun commit/2.
+fun open/2.
+fun bbssign/2.
+fun bbsver/3.
+fun getmess/1.
+equation bbsver(open(bbssign(commit(x,z),sk(y)),z),x,pk(y)) = true.
+equation getmess(open(bbssign(commit(x,z),y),z)) = x.
+equation bbsver(open(bbssign((commit(x,z),commit(x1,z1)),sk(y)),(z,z1)),(x,x1),pk(y)) = true.
+equation getmess(open(bbssign((commit(x,z),commit(x1,z1)),sk(y)),(z,z1))) = (x,x1).
+
+(* Hash functions. *)
+
+fun hash/1.
+
+(* Discrete Logarithm*)
+
+fun exp/2.

@@ -1,0 +1,90 @@
+include "basetheory-normal.pvi".
+private fun bind/1.
+free TS,TSminus,ltTS.
+free pub.
+
+define regproof = land(eq(alpha1, bind(beta1)), eq(beta2, commit(alpha1, alpha2))).
+(* user-side of registration *)
+let Register = 
+  in(c, mreg);
+  let x = bind(id) in
+  new y;
+  let Cx = commit(x, y) in
+  let Pi1 = zk(x, y; id, Cx, mreg; regproof) in
+  out(c, (Cx,Pi1));
+  in(c, bcre);
+  let cre = open(bcre, y) in
+  if bbsver(cre, x, pk(IssKSeed)) = true then (
+    event registered(id, mreg, bcre, cre);
+    !out(p, cre)
+  ) 
+  else 
+    ( event unregistered(id) ).
+  
+let Issue = 
+  new mreg;
+  out(c, mreg);
+  in(c, (Cx, Pi1));
+  if Cx = public2(Pi1) then
+  if mreg = public3(Pi1) then
+  if zkver(2;3;regproof;Pi1) = true then
+  let id = public1(Pi1) in
+  if sybil = true then 0 else
+  let bcre = bbssign(Cx, sk(IssKSeed)) in
+  out(c, bcre).
+
+define sigproof = land(land(eq(beta1, commit(alpha1, alpha2)), bbsver(alpha3, alpha1, beta2)), eq(beta4, exp(beta5, alpha1))).
+define polproof = land(land(eq(beta1, commit(alpha1, alpha2)),eq(beta2, commit(alpha3, alpha4))), eq(beta3, alpha3)).
+let Authenticate = 
+  in(c, mauth);
+  let x = bind(id) in
+  new r;
+  let Cx = commit(x, r) in
+  new b;
+  let h = hash((b, pk(VerKSeed))) in
+  let t = exp(h, x) in
+  let Pi2 = zk(x, r, cert; Cx, pk(IssKSeed), b, t, h, mauth; sigproof) in
+  in(jud,s);
+  new rs;
+  let Cs = commit(s, rs) in
+  let Pi3 = zk(x, r, s, rs; Cx, Cs, ltTS, mauth; polproof) in
+  event startAuth(id, s, Cx, Cs, b, t, mauth);
+  out(c, (Pi2,Pi3)).
+
+let Verify =
+  new mauth;
+  out(c, mauth);
+  in(c, (Pi2, Pi3));
+  if public2(Pi2) = pk(IssKSeed) then
+  if public6(Pi2) = mauth then
+  if public5(Pi2) = hash((public3(Pi2), pk(VerKSeed))) then
+  if zkver(3;6;sigproof;Pi2) = true then
+  let Cx = public1(Pi2) in
+  let b = public3(Pi2) in
+  let t = public4(Pi2) in
+  if public1(Pi3) = Cx then
+  if public3(Pi3) = ltTS then
+  if public4(Pi3) = mauth then 
+  let Cs = public2(Pi3) in
+  if zkver(4;4;polproof;Pi3) = true then (
+    event acceptAuth(Cx, Cs, b, t, mauth); 
+    !out(L,(b,t)) )
+  else 
+    (event revoke(b, t) ).
+
+let Judge =
+  in(pub, s);
+  if s = TS then 
+    ( event NotSatisfy(TS); out(jud, TS) )
+  else 
+    ( event SatisfyPolicy(ltTS); out(jud, ltTS) ).
+
+(* 1. 在Pi3中为什么要从 zkver = ture then out(BL, ) 变成现在这样。 因为之前是true的时候才进入黑名单，其他情况进入正常模式，但这个其他情况不仅包括正常的false，即分数不等的时候，还包括其他false和failure模式 *)
+
+let AssignScore =
+  in(L, (b1, t1));
+  new s;
+  out(pub, (b1,t1,s)).
+
+compiler ZK.
+compiler IfFix.

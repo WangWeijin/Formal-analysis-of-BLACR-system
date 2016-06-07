@@ -1,0 +1,33 @@
+(*
+
+Test the correspondences of BLACR in the normal-lane
+
+*)
+
+define sybil = or(or(eq(id,sybilid1),eq(id,sybilid2)),eq(id,sybilid3)).
+
+
+include "blacr-normal.pvi".
+
+(* authenticity *)
+passthrough query ev:acceptAuth(x1, x2, x3, x4, x5) ==> ev:startAuth(y1, z1, x1, x2, x3, x4, x5) & ev:SatisfyPolicy(z1).
+passthrough query ev:acceptAuth(x1, x2, x3, x4, x5) ==> ev:startAuth(y1, z1, x1, x2, x3, x4, x5) & ev:NotSatisfy(z1).
+
+(* Non-frameability *)
+passthrough query ev:revoke(x3,x4) ==> ev:startAuth(y1, z1, x1, x2, x3, x4, x5) & ev:SatisfyPolicy(z1).
+
+(* Mis-authentication Resistance *)
+
+passthrough query ev:acceptAuth(x1, x2, x3, x4, x5) ==> ev:startAuth(y1, z1, x1, x2, x3, x4, x5) & ev:registered(y1, y2, y3, y4).
+passthrough query ev:acceptAuth(x1, x2, x3, x4, x5) ==> ev:startAuth(y1, z1, x1, x2, x3, x4, x5) & ev:unregistered(y1).
+
+free sybilid1,sybilid2,sybilid3.
+
+let ControlUsers = 
+  (! in(pub, id); ! new p; (Register | (in(p ,cert); ! ( Authenticate | Judge)))).
+
+process
+  new IssKSeed; new VerKSeed; new jud; new L; let c = pub in ( out(pub, pk(IssKSeed)) | out(pub, pk(VerKSeed)) |
+  (! Issue) | (!(Verify | AssignScore)) | ControlUsers
+)
+

@@ -1,0 +1,32 @@
+(*
+
+Test the reply attack in the express lane authentication in token.
+
+*)
+
+// EXPECT: event occurs
+
+define sybil = or(or(eq(id,sybilid1),eq(id,sybilid2)),eq(id,sybilid3)).
+
+include "blacr-express-fix.pvi".
+
+query ev:notWillRevoke(mEx2).
+query ev:willRevoke(mEx2).
+
+free sybilid1,sybilid2,sybilid3.
+free id1,id2,id3.
+free T0,T1,T2.
+
+process
+  new priv1; new priv2; new priv3; new priv4; new int1; new int2; new int3; new int4; new IssKSeed; new VerKSeed; new jud; new L; (
+  out(pub, pk(IssKSeed)) | out(pub, pk(VerKSeed)) |
+  (let c = priv1 in Issue) |
+  (let (id, c, p) = (id1, priv1, int1) in Register ) |
+  (let c = priv2 in ! Verify) |
+  (in(int1, cre); let (id, c, p0, p1, s, t) = (id1, priv2, int2, int3, ltTS, T0) in ! Authenticate) |
+  (let c = priv3 in new mEx1; let (mEx,t) = (mEx1,T0) in ExVerify) |
+  (in(int1, cre); in(int2, (s, tk)); let (id, c, p1, snew, t, tnext) = (id1, priv3, int3, TSminus, T0, T1) in ExAuthenticate)|
+  (let c = priv4 in new mEx2; let (mEx,t) = (mEx2,T1) in ExVerify) |
+  (in(int1, cre); in(int3, (s, tk)); let (id, c, p1, snew, t, tnext) = (id1, priv4, int4, TS, T1, T2) in ExAuthenticate)|
+  (! AssignScore )
+)

@@ -1,0 +1,32 @@
+(*
+
+The file replaces the equational rules generated for the ZK proofs
+in daa.pvi by equivalent ones that do not contain "land" or "or" and
+then removes the equational rules associated with "land" and
+"or". 
+
+This is necessary for termination in observational equivalence proofs.
+
+Include this file *after* the command "compiler ZK".
+
+*)
+
+// regproof
+compiler AlternativeZKVer(zkver(2;3;regproof; 
+   zk(bind(id), y; id, commit(x,y), mreg; regproof))).
+
+// sigproof
+compiler AlternativeZKVer(zkver(3;6;sigproof;
+   zk(x,r,open(bbssign(commit(x,r),sk(y)),r);commit(x,r),pk(y),b,exp(h,x),h,mauth;sigproof))).
+
+// polproof
+compiler AlternativeZKVer(zkver(4;4;polproof;
+   zk(x, r, s, rs; commit(x,r), commit(s,rs), ltTS, mauth; polproof))).
+
+
+(* If the following constructors exist, proverif does not terminate in proofs
+   of observational equivalence. Since after the above modifications,
+   these constructors are not used any more, we can remove them. *)
+
+compiler RemoveEquations(land).
+compiler RemoveEquations(or).

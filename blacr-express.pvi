@@ -1,0 +1,164 @@
+include "basetheory-express.pvi".
+private fun bind/1.
+free TS,TSminus,ltTS.
+free pub.
+
+define regproof = land(eq(alpha1, bind(beta1)), eq(beta2, commit(alpha1, alpha2))).
+(* user-side of registration *)
+let Register = 
+  in(c, mreg);
+  let x = bind(id) in
+  new y;
+  let Cx = commit(x, y) in
+  let Pi1 = zk(x, y; id, Cx, mreg; regproof) in
+  out(c, Pi1);
+  in(c, bcre);
+  let cre = open(bcre, y) in
+  if bbsver(cre, x, pk(IssKSeed)) = true then (
+    event registered(id, mreg, bcre, cre);
+    (! out(p, cre))
+  ) 
+  else 
+    ( event unregistered(id) ).
+  
+let Issue = 
+  new mreg;
+  out(c, mreg);
+  in(c, Pi1);
+  if zkver(2;3;regproof;Pi1) = true then
+  let id = public1(Pi1) in
+  let Cx = public2(Pi1) in
+  if mreg = public3(Pi1) then
+  if sybil = true then 0 else
+  let bcre = bbssign(Cx, sk(IssKSeed)) in
+  out(c, bcre).
+
+define sigproof = land(land(eq(beta1, commit(alpha1, alpha2)), bbsver(alpha3, alpha1, beta2)), eq(beta4, exp(beta5, alpha1))).
+define polproof = land(land(eq(beta1, commit(alpha1, alpha2)),eq(beta2, commit(alpha3, alpha4))), or(eq(beta3, alpha3), eq(beta4, alpha3))).
+let Authenticate = 
+  in(c, mauth);
+  let x = bind(id) in
+  new r;
+  let Cx = commit(x, r) in
+  new b;
+  let h = hash((b, pk(VerKSeed))) in
+  let t = exp(h, x) in
+  let Pi2 = zk(x, r, cre; Cx, pk(IssKSeed), b, t, h, mauth; sigproof) in
+  new rs;
+  let Cs = commit(s, rs) in
+  let Pi3 = zk(x, r, s, rs; Cx, Cs, ltTS, TSminus, mauth; polproof) in
+  event startAuth(id, s, Cx, Cs, mauth);
+  out(c, (Pi2,Pi3));
+  in(c, btk);
+  let tk = open(btk, rs) in
+  if bbsver(tk, s, pk(VerKSeed)) = true then
+  (! out(p0, (s,tk)) | ! out(p1, (s, tk)) ).
+
+let Verify =
+  new mauth;
+  out(c, mauth);
+  in(c, (Pi2, Pi3));
+  if public6(Pi2) = mauth then
+  if public2(Pi2) = pk(IssKSeed) then
+  if public5(Pi2) = hash((public3(Pi2), pk(VerKSeed))) then
+  if zkver(3;6;sigproof;Pi2) = true then
+  let Cx = public1(Pi2) in
+  let b = public3(Pi2) in
+  let t = public4(Pi2) in
+  if public1(Pi3) = Cx then
+  if public3(Pi3) = ltTS then
+  if public4(Pi3) = TSminus then
+  if public5(Pi3) = mauth then 
+  let Cs = public2(Pi3) in
+  if zkver(4;5;polproof;Pi3) = true then (
+    event acceptAuth(Cx, Cs, mauth);
+    out(L,(b,t));
+    let btk = bbssign(Cs, sk(VerKSeed)) in
+    out(c, btk) 
+  )
+  else 
+    (event revoke(b,t)).
+
+let Judge =
+  in(pub, s);
+  if s = TS then (
+     event notSatisfy(TS); 
+     out(jud, TS) 
+  )
+  else (
+     if s = TSminus then (
+        event satisfyPolicy(TSminus);
+        out(jud, TSminus)
+     )
+     else (
+           event satisfyPolicy(ltTS); 
+           out(jud, ltTS) 
+     )
+  ).
+
+
+let AssignScore =
+  in(L, (b1, t1));
+  new s;
+  out(pub, (b1,t1,s)).
+
+define tkproof = land(land(eq(beta1, commit(alpha1, alpha2)), eq(beta2, commit(alpha3, alpha4))), land(bbsver(alpha5, alpha3, beta3), eq(beta4, alpha3))).
+let ExAuthenticate =
+  in(c, mEx);
+  let x = bind(id) in
+  new r;
+  let Cx = commit(x, r) in
+  new b;
+  let h = hash((b, pk(VerKSeed))) in
+  let t = exp(h, x) in
+  let Pi2 = zk(x, r, cre; Cx, pk(IssKSeed), b, t, h, mEx; sigproof) in
+  new rs;
+  let Cs = commit(s, rs) in
+  let Pi4 = zk(x, r, s, rs, tk; Cx, Cs, pk(VerKSeed), ltTS, mEx; tkproof) in
+  new rsnew;
+  let Csnew = commit(snew, rsnew) in
+  let Pi3 = zk(x, r, snew, rsnew; Cx, Csnew, ltTS, TSminus, mEx; polproof) in
+  out(c, (Pi2, Pi4, Pi3));
+  in(c, btknew);
+  let tknew = open(btknew, rsnew) in
+  if bbsver(tknew, snew, pk(VerKSeed)) = true then
+  (! out(p1, (snew,tknew)) ).
+
+let ExVerify =
+  out(c, mEx);
+  in(c, (Pi2, Pi4, Pi3));
+  if public2(Pi2) = pk(IssKSeed) then
+  if public6(Pi2) = mEx then
+  if public5(Pi2) = hash((public3(Pi2), pk(VerKSeed))) then
+  if zkver(3;6;sigproof;Pi2) = true then 
+  let Cx = public1(Pi2) in
+  let b = public3(Pi2) in
+  let t = public4(Pi2) in
+  if public1(Pi4) = Cx then
+  if public3(Pi4) = pk(VerKSeed) then
+  if public4(Pi4) = ltTS then
+  if public5(Pi4) = mEx then
+  if public1(Pi3) = Cx then
+  if public3(Pi3) = ltTS then
+  if public4(Pi3) = TSminus then
+  if public5(Pi3) = mEx then
+  let Csnew = public2(Pi3) in
+  if zkver(5;5;tkproof;Pi4) = true then (
+    event notWillRevoke(mEx);
+    if zkver(4;5;polproof;Pi3) = true then ( 
+      out(L, (b,t));
+      let btknew = bbssign(Csnew, sk(VerKSeed)) in
+      out(c, btknew) 
+    ) 
+  )
+  else (
+    event willRevoke(mEx);
+    if zkver(4;5;polproof;Pi3) = true then (
+      out(L, (b,t));
+      let btknew = bbssign(Csnew, sk(VerKSeed)) in
+      out(c, btknew) 
+    ) 
+  ).
+
+compiler ZK.
+compiler IfFix.
